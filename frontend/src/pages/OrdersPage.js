@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Package, FileText, CreditCard, Eye } from 'lucide-react';
+import { Package, FileText, CreditCard, Eye, Ship } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import PaymentGatewaySelector from '@/components/PaymentGatewaySelector';
+import ShipmentDetailsForm from '@/components/ShipmentDetailsForm';
+import ShipmentTracking from '@/components/ShipmentTracking';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -16,6 +18,7 @@ export default function OrdersPage({ user }) {
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showPaymentSelector, setShowPaymentSelector] = useState(false);
+  const [showShipmentDialog, setShowShipmentDialog] = useState(false);
   const [orderToPay, setOrderToPay] = useState(null);
   const [selectedGateway, setSelectedGateway] = useState('paypal');
   const token = localStorage.getItem('token');
@@ -258,14 +261,27 @@ export default function OrdersPage({ user }) {
                                 </Button>
                               )}
                               {user.role === 'shipper' && order.status === 'confirmed' && (
-                                <Button 
-                                  size="sm" 
-                                  className="btn-secondary"
-                                  onClick={() => handleUpdateStatus(order.id, 'shipped')}
-                                  data-testid={`ship-order-${order.id}`}
-                                >
-                                  Mark Shipped
-                                </Button>
+                                <>
+                                  <Button 
+                                    size="sm" 
+                                    className="btn-secondary"
+                                    onClick={() => {
+                                      setSelectedOrder(order);
+                                      setShowShipmentDialog(true);
+                                    }}
+                                    data-testid={`manage-shipment-${order.id}`}
+                                  >
+                                    <Ship className="w-4 h-4 mr-1" /> Manage Shipment
+                                  </Button>
+                                  <Button 
+                                    size="sm" 
+                                    className="btn-secondary"
+                                    onClick={() => handleUpdateStatus(order.id, 'shipped')}
+                                    data-testid={`ship-order-${order.id}`}
+                                  >
+                                    Mark Shipped
+                                  </Button>
+                                </>
                               )}
                             </div>
                           </td>
@@ -335,8 +351,8 @@ export default function OrdersPage({ user }) {
       </div>
 
       {/* Order Detail Dialog */}
-      <Dialog open={!!selectedOrder} onOpenChange={() => setSelectedOrder(null)}>
-        <DialogContent className="max-w-2xl">
+      <Dialog open={!!selectedOrder && !showShipmentDialog} onOpenChange={() => setSelectedOrder(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Order Details</DialogTitle>
           </DialogHeader>
@@ -371,6 +387,12 @@ export default function OrdersPage({ user }) {
                     <span className="text-[#595959]">Delivery Location:</span>
                     <span className="font-medium">{selectedOrder.delivery_location}</span>
                   </div>
+                  {selectedOrder.delivery_port && (
+                    <div className="flex justify-between">
+                      <span className="text-[#595959]">Delivery Port:</span>
+                      <span className="font-medium">{selectedOrder.delivery_port}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between pt-2 border-t border-[#D1D1D1]">
                     <span className="font-bold">Total Amount:</span>
                     <span className="font-bold mono text-[#2A5934]">{selectedOrder.total_amount} {selectedOrder.currency}</span>
@@ -394,7 +416,48 @@ export default function OrdersPage({ user }) {
                   </div>
                 </div>
               </div>
+              
+              {/* Shipment Tracking for Buyers */}
+              {user.role === 'buyer' && (
+                <div className="border-t border-[#D1D1D1] pt-4">
+                  <h3 className="font-bold mb-4">Shipment Tracking</h3>
+                  <ShipmentTracking order={selectedOrder} />
+                </div>
+              )}
+              
+              {/* Shipment Management Button for Shippers */}
+              {user.role === 'shipper' && selectedOrder.payment_status === 'paid' && (
+                <div className="border-t border-[#D1D1D1] pt-4">
+                  <Button 
+                    onClick={() => {
+                      setShowShipmentDialog(true);
+                    }}
+                    className="w-full btn-primary"
+                    data-testid="manage-shipment-detail-button"
+                  >
+                    <Ship className="w-4 h-4 mr-2" /> Manage Shipment Details
+                  </Button>
+                </div>
+              )}
             </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Shipment Management Dialog (Shippers Only) */}
+      <Dialog open={showShipmentDialog} onOpenChange={setShowShipmentDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Manage Shipment - Order {selectedOrder?.id.slice(0, 8)}</DialogTitle>
+          </DialogHeader>
+          {selectedOrder && (
+            <ShipmentDetailsForm 
+              order={selectedOrder} 
+              onUpdate={() => {
+                fetchOrders();
+                setShowShipmentDialog(false);
+              }}
+            />
           )}
         </DialogContent>
       </Dialog>

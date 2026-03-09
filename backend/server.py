@@ -172,12 +172,50 @@ class Order(BaseModel):
     total_amount: float
     currency: str = "USD"
     delivery_location: str
+    delivery_port: Optional[str] = None
     status: str = "pending"
     payment_status: str = "pending"
     payment_session_id: Optional[str] = None
+    # Shipment details
+    sales_order_number: Optional[str] = None
+    shipment_date: Optional[str] = None
+    estimated_arrival: Optional[str] = None
+    port_of_loading: Optional[str] = None
+    port_of_arrival: Optional[str] = None
+    shipping_line: Optional[str] = None
+    container_number: Optional[str] = None
+    shipment_documents: List[Dict] = []
+    shipment_status: str = "not_shipped"  # not_shipped, in_transit, arrived, delivered
+    shipment_notes: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class OrderCreate(BaseModel):
+    shipper_id: str
+    product_id: Optional[str] = None
+    rfq_id: Optional[str] = None
+    material_name: str
+    quantity: float
+    unit: str
+    price_per_unit: float
+    delivery_location: str
+    delivery_port: Optional[str] = None
+
+class ShipmentUpdate(BaseModel):
+    sales_order_number: Optional[str] = None
+    shipment_date: Optional[str] = None
+    estimated_arrival: Optional[str] = None
+    port_of_loading: Optional[str] = None
+    port_of_arrival: Optional[str] = None
+    shipping_line: Optional[str] = None
+    container_number: Optional[str] = None
+    shipment_status: Optional[str] = None
+    shipment_notes: Optional[str] = None
+
+class ShipmentDocument(BaseModel):
+    document_type: str  # invoice, packing_list, bill_of_lading, certificate, other
+    document_name: str
+    document_url: str
+    uploaded_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     shipper_id: str
     product_id: Optional[str] = None
     rfq_id: Optional[str] = None
@@ -500,6 +538,68 @@ async def update_order_status(order_id: str, status: str, current_user: dict = D
     
     await db.orders.update_one({'id': order_id}, {'$set': {'status': status}})
     return {'message': 'Order status updated'}
+
+# ============ SHIPMENT ROUTES ============
+@api_router.put("/orders/{order_id}/shipment")
+async def update_shipment_details(
+    order_id: str, 
+    shipment_data: ShipmentUpdate, 
+    current_user: dict = Depends(get_current_user)
+):
+    order = await db.orders.find_one({'id': order_id}, {'_id': 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    if order['shipper_id'] != current_user['user_id']:
+        raise HTTPException(status_code=403, detail="Only shipper can update shipment details")
+    
+    update_data = {k: v for k, v in shipment_data.model_dump().items() if v is not None}
+    
+    await db.orders.update_one(
+        {'id': order_id},
+        {'$set': update_data}
+    )
+    
+    return {'message': 'Shipment details updated successfully'}
+
+@api_router.post("/orders/{order_id}/shipment/documents")
+async def add_shipment_document(
+    order_id: str,
+    document: ShipmentDocument,
+    current_user: dict = Depends(get_current_user)
+):
+    order = await db.orders.find_one({'id': order_id}, {'_id': 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    if order['shipper_id'] != current_user['user_id']:
+        raise HTTPException(status_code=403, detail="Only shipper can add documents")
+    
+    doc_data = document.model_dump()
+    
+    await db.orders.update_one(
+        {'id': order_id},
+        {'$push': {'shipment_documents': doc_data}}
+    )
+    
+    return {'message': 'Document added successfully', 'document': doc_data}
+
+@api_router.delete("/orders/{order_id}/shipment/documents/{document_name}")
+async def delete_shipment_document(
+    order_id: str,
+    document_name: str,
+    current_user: dict = Depends(get_current_user)
+):
+    order = await db.orders.find_one({'id': order_id}, {'_id': 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    if order['shipper_id'] != current_user['user_id']:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    await db.orders.update_one(
+        {'id': order_id},
+        {'$pull': {'shipment_documents': {'document_name': document_name}}}
+    )
+    
+    return {'message': 'Document deleted successfully'}
 
 # ============ PAYMENT ROUTES ============
 @api_router.post("/payments/checkout")
