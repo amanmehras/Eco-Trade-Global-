@@ -113,8 +113,7 @@ class RFQCreate(BaseModel):
     delivery_deadline: Optional[str] = None
     description: str
 
-class Quote(BaseModel):
-    shipper_id: str
+class QuoteSubmit(BaseModel):
     price_per_unit: float
     currency: str = "USD"
     notes: str
@@ -353,7 +352,7 @@ async def get_rfq(rfq_id: str):
     return rfq
 
 @api_router.post("/rfqs/{rfq_id}/quote")
-async def submit_quote(rfq_id: str, quote: Quote, current_user: dict = Depends(get_current_user)):
+async def submit_quote(rfq_id: str, quote: QuoteSubmit, current_user: dict = Depends(get_current_user)):
     if current_user['role'] != 'shipper':
         raise HTTPException(status_code=403, detail="Only shippers can submit quotes")
     
