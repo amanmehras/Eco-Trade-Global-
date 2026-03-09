@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
+import PaymentGatewaySelector from '@/components/PaymentGatewaySelector';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -14,6 +15,9 @@ export default function OrdersPage({ user }) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [showPaymentSelector, setShowPaymentSelector] = useState(false);
+  const [orderToPay, setOrderToPay] = useState(null);
+  const [selectedGateway, setSelectedGateway] = useState('paypal');
   const token = localStorage.getItem('token');
 
   useEffect(() => {
@@ -39,6 +43,13 @@ export default function OrdersPage({ user }) {
   };
 
   const handlePayment = async (order) => {
+    setOrderToPay(order);
+    setShowPaymentSelector(true);
+  };
+
+  const processPayment = async () => {
+    if (!orderToPay) return;
+    
     try {
       const res = await fetch(`${API}/payments/checkout`, {
         method: 'POST',
@@ -47,14 +58,62 @@ export default function OrdersPage({ user }) {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          order_id: order.id,
-          origin_url: window.location.origin
+          order_id: orderToPay.id,
+          origin_url: window.location.origin,
+          payment_gateway: selectedGateway
         })
       });
 
       if (res.ok) {
         const data = await res.json();
-        window.location.href = data.url;
+        if (data.url) {
+          window.location.href = data.url;
+        } else if (data.razorpay_order_id) {
+          // Handle Razorpay payment
+          const options = {
+            key: data.razorpay_key_id,
+            amount: data.amount,
+            currency: data.currency,
+            order_id: data.razorpay_order_id,
+            handler: async function (response) {
+              try {
+                const verifyRes = await fetch(`${API}/payments/razorpay/verify`, {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({
+                    razorpay_order_id: response.razorpay_order_id,
+                    razorpay_payment_id: response.razorpay_payment_id,
+                    razorpay_signature: response.razorpay_signature
+                  })
+                });
+                
+                if (verifyRes.ok) {
+                  toast.success('Payment successful!');
+                  fetchOrders();
+                  setShowPaymentSelector(false);
+                } else {
+                  toast.error('Payment verification failed');
+                }
+              } catch (error) {
+                toast.error('Payment verification error');
+              }
+            },
+            prefill: {
+              name: user.contact_person,
+              email: user.email
+            },
+            theme: {
+              color: '#2A5934'
+            }
+          };
+          
+          const rzp = new window.Razorpay(options);
+          rzp.open();
+          setShowPaymentSelector(false);
+        }
       } else {
         toast.error('Failed to initiate payment');
       }
@@ -337,6 +396,46 @@ export default function OrdersPage({ user }) {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Payment Gateway Selector Dialog */}
+      <Dialog open={showPaymentSelector} onOpenChange={setShowPaymentSelector}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Choose Payment Method</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6">
+            <PaymentGatewaySelector 
+              onSelect={setSelectedGateway} 
+              selectedGateway={selectedGateway} 
+            />
+            {orderToPay && (
+              <div className="bg-gray-50 p-4 rounded-sm">
+                <p className="text-sm text-[#595959] mb-2">Order Summary</p>
+                <div className="flex justify-between items-center">
+                  <span className="font-medium">{orderToPay.material_name} - {orderToPay.quantity} {orderToPay.unit}</span>
+                  <span className="text-xl font-bold text-[#2A5934]">{orderToPay.total_amount} {orderToPay.currency}</span>
+                </div>
+              </div>
+            )}
+            <div className="flex gap-3">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowPaymentSelector(false)}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={processPayment}
+                className="flex-1 btn-primary"
+                data-testid="confirm-payment-button"
+              >
+                Proceed to Payment
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

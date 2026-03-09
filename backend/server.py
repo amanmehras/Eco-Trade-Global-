@@ -13,6 +13,13 @@ from datetime import datetime, timezone, timedelta
 import jwt
 import bcrypt
 from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionResponse, CheckoutStatusResponse, CheckoutSessionRequest
+import razorpay
+from paypalserversdk.http.auth.o_auth_2 import ClientCredentialsAuthCredentials
+from paypalserversdk.paypal_serversdk_client import PaypalServersdkClient
+from paypalserversdk.controllers.orders_controller import OrdersController
+from paypalserversdk.models.order_request import OrderRequest
+from paypalserversdk.models.amount_with_breakdown import AmountWithBreakdown
+from paypalserversdk.models.purchase_unit_request import PurchaseUnitRequest
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -25,6 +32,23 @@ JWT_SECRET = os.environ.get('JWT_SECRET', 'your-secret-key-change-in-production'
 JWT_ALGORITHM = 'HS256'
 JWT_EXPIRATION_HOURS = 24 * 7
 STRIPE_API_KEY = os.environ.get('STRIPE_API_KEY', 'sk_test_emergent')
+
+# Razorpay Configuration
+RAZORPAY_KEY_ID = os.environ.get('RAZORPAY_KEY_ID', 'rzp_test_placeholder')
+RAZORPAY_KEY_SECRET = os.environ.get('RAZORPAY_KEY_SECRET', 'secret_placeholder')
+razorpay_client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
+
+# PayPal Configuration  
+PAYPAL_CLIENT_ID = os.environ.get('PAYPAL_CLIENT_ID', 'paypal_client_id_placeholder')
+PAYPAL_CLIENT_SECRET = os.environ.get('PAYPAL_CLIENT_SECRET', 'paypal_secret_placeholder')
+PAYPAL_MODE = os.environ.get('PAYPAL_MODE', 'sandbox')
+paypal_client = PaypalServersdkClient(
+    client_credentials_auth_credentials=ClientCredentialsAuthCredentials(
+        o_auth_client_id=PAYPAL_CLIENT_ID,
+        o_auth_client_secret=PAYPAL_CLIENT_SECRET
+    ),
+    environment=PAYPAL_MODE
+)
 
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
@@ -179,6 +203,7 @@ class PaymentTransaction(BaseModel):
 class CheckoutRequest(BaseModel):
     order_id: str
     origin_url: str
+    payment_gateway: str = "stripe"  # stripe, razorpay, or paypal
 
 # ============ AUTH HELPERS ============
 def hash_password(password: str) -> str:
@@ -487,46 +512,143 @@ async def create_checkout(checkout_req: CheckoutRequest, current_user: dict = De
     if order['payment_status'] == 'paid':
         raise HTTPException(status_code=400, detail="Order already paid")
     
-    webhook_url = f"{checkout_req.origin_url}/api/webhook/stripe"
-    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
+    payment_gateway = checkout_req.payment_gateway.lower()
     
-    success_url = f"{checkout_req.origin_url}/payment/success?session_id={{CHECKOUT_SESSION_ID}}"
-    cancel_url = f"{checkout_req.origin_url}/payment/cancel"
+    # STRIPE PAYMENT
+    if payment_gateway == "stripe":
+        webhook_url = f"{checkout_req.origin_url}/api/webhook/stripe"
+        stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
+        
+        success_url = f"{checkout_req.origin_url}/payment/success?session_id={{CHECKOUT_SESSION_ID}}&gateway=stripe"
+        cancel_url = f"{checkout_req.origin_url}/payment/cancel"
+        
+        checkout_request = CheckoutSessionRequest(
+            amount=float(order['total_amount']),
+            currency=order['currency'].lower(),
+            success_url=success_url,
+            cancel_url=cancel_url,
+            metadata={
+                'order_id': order['id'],
+                'buyer_id': order['buyer_id'],
+                'shipper_id': order['shipper_id']
+            }
+        )
+        
+        session: CheckoutSessionResponse = await stripe_checkout.create_checkout_session(checkout_request)
+        
+        transaction = PaymentTransaction(
+            order_id=order['id'],
+            user_id=current_user['user_id'],
+            session_id=session.session_id,
+            amount=float(order['total_amount']),
+            currency=order['currency'],
+            payment_status='pending',
+            metadata={'order_id': order['id'], 'gateway': 'stripe'}
+        )
+        doc = transaction.model_dump()
+        doc['created_at'] = doc['created_at'].isoformat()
+        doc['updated_at'] = doc['updated_at'].isoformat()
+        await db.payment_transactions.insert_one(doc)
+        
+        await db.orders.update_one(
+            {'id': order['id']},
+            {'$set': {'payment_session_id': session.session_id, 'payment_gateway': 'stripe'}}
+        )
+        
+        return {'url': session.url, 'session_id': session.session_id, 'gateway': 'stripe'}
     
-    checkout_request = CheckoutSessionRequest(
-        amount=float(order['total_amount']),
-        currency=order['currency'].lower(),
-        success_url=success_url,
-        cancel_url=cancel_url,
-        metadata={
-            'order_id': order['id'],
-            'buyer_id': order['buyer_id'],
-            'shipper_id': order['shipper_id']
+    # RAZORPAY PAYMENT
+    elif payment_gateway == "razorpay":
+        # Create Razorpay order
+        razorpay_order = razorpay_client.order.create({
+            "amount": int(float(order['total_amount']) * 100),  # Convert to paise
+            "currency": order['currency'],
+            "receipt": order['id'][:40],  # Max 40 chars
+            "notes": {
+                "order_id": order['id'],
+                "buyer_id": order['buyer_id'],
+                "shipper_id": order['shipper_id']
+            }
+        })
+        
+        transaction = PaymentTransaction(
+            order_id=order['id'],
+            user_id=current_user['user_id'],
+            session_id=razorpay_order['id'],
+            amount=float(order['total_amount']),
+            currency=order['currency'],
+            payment_status='pending',
+            metadata={'order_id': order['id'], 'gateway': 'razorpay'}
+        )
+        doc = transaction.model_dump()
+        doc['created_at'] = doc['created_at'].isoformat()
+        doc['updated_at'] = doc['updated_at'].isoformat()
+        await db.payment_transactions.insert_one(doc)
+        
+        await db.orders.update_one(
+            {'id': order['id']},
+            {'$set': {'payment_session_id': razorpay_order['id'], 'payment_gateway': 'razorpay'}}
+        )
+        
+        return {
+            'razorpay_order_id': razorpay_order['id'],
+            'razorpay_key_id': RAZORPAY_KEY_ID,
+            'amount': razorpay_order['amount'],
+            'currency': razorpay_order['currency'],
+            'gateway': 'razorpay'
         }
-    )
     
-    session: CheckoutSessionResponse = await stripe_checkout.create_checkout_session(checkout_request)
+    # PAYPAL PAYMENT
+    elif payment_gateway == "paypal":
+        # Create PayPal order
+        order_request = OrderRequest(
+            intent="CAPTURE",
+            purchase_units=[
+                PurchaseUnitRequest(
+                    reference_id=order['id'],
+                    amount=AmountWithBreakdown(
+                        currency_code=order['currency'],
+                        value=str(float(order['total_amount']))
+                    )
+                )
+            ],
+            application_context={
+                "return_url": f"{checkout_req.origin_url}/payment/success?gateway=paypal",
+                "cancel_url": f"{checkout_req.origin_url}/payment/cancel"
+            }
+        )
+        
+        try:
+            paypal_order = paypal_client.orders.orders_create({"body": order_request})
+            
+            # Get approval URL
+            approval_url = next((link.href for link in paypal_order.body.links if link.rel == "approve"), None)
+            
+            transaction = PaymentTransaction(
+                order_id=order['id'],
+                user_id=current_user['user_id'],
+                session_id=paypal_order.body.id,
+                amount=float(order['total_amount']),
+                currency=order['currency'],
+                payment_status='pending',
+                metadata={'order_id': order['id'], 'gateway': 'paypal'}
+            )
+            doc = transaction.model_dump()
+            doc['created_at'] = doc['created_at'].isoformat()
+            doc['updated_at'] = doc['updated_at'].isoformat()
+            await db.payment_transactions.insert_one(doc)
+            
+            await db.orders.update_one(
+                {'id': order['id']},
+                {'$set': {'payment_session_id': paypal_order.body.id, 'payment_gateway': 'paypal'}}
+            )
+            
+            return {'url': approval_url, 'session_id': paypal_order.body.id, 'gateway': 'paypal'}
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"PayPal error: {str(e)}")
     
-    transaction = PaymentTransaction(
-        order_id=order['id'],
-        user_id=current_user['user_id'],
-        session_id=session.session_id,
-        amount=float(order['total_amount']),
-        currency=order['currency'],
-        payment_status='pending',
-        metadata={'order_id': order['id']}
-    )
-    doc = transaction.model_dump()
-    doc['created_at'] = doc['created_at'].isoformat()
-    doc['updated_at'] = doc['updated_at'].isoformat()
-    await db.payment_transactions.insert_one(doc)
-    
-    await db.orders.update_one(
-        {'id': order['id']},
-        {'$set': {'payment_session_id': session.session_id}}
-    )
-    
-    return {'url': session.url, 'session_id': session.session_id}
+    else:
+        raise HTTPException(status_code=400, detail="Invalid payment gateway")
 
 @api_router.get("/payments/status/{session_id}")
 async def get_payment_status(session_id: str, request: Request, current_user: dict = Depends(get_current_user)):
@@ -599,6 +721,73 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
         return {'status': 'success'}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+# ============ RAZORPAY VERIFICATION ============
+@api_router.post("/payments/razorpay/verify")
+async def verify_razorpay_payment(
+    razorpay_order_id: str,
+    razorpay_payment_id: str,
+    razorpay_signature: str,
+    current_user: dict = Depends(get_current_user)
+):
+    try:
+        # Verify signature
+        razorpay_client.utility.verify_payment_signature({
+            'razorpay_order_id': razorpay_order_id,
+            'razorpay_payment_id': razorpay_payment_id,
+            'razorpay_signature': razorpay_signature
+        })
+        
+        # Update transaction and order
+        await db.payment_transactions.update_one(
+            {'session_id': razorpay_order_id},
+            {'$set': {
+                'payment_status': 'paid',
+                'updated_at': datetime.now(timezone.utc).isoformat(),
+                'metadata.payment_id': razorpay_payment_id
+            }}
+        )
+        
+        transaction = await db.payment_transactions.find_one({'session_id': razorpay_order_id}, {'_id': 0})
+        if transaction:
+            await db.orders.update_one(
+                {'id': transaction['order_id']},
+                {'$set': {'payment_status': 'paid', 'status': 'confirmed'}}
+            )
+        
+        return {'status': 'success', 'message': 'Payment verified'}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Payment verification failed: {str(e)}")
+
+# ============ PAYPAL CAPTURE ============
+@api_router.post("/payments/paypal/capture/{order_id}")
+async def capture_paypal_payment(order_id: str, current_user: dict = Depends(get_current_user)):
+    try:
+        # Capture the PayPal order
+        capture_response = paypal_client.orders.orders_capture({"id": order_id})
+        
+        if capture_response.body.status == "COMPLETED":
+            # Update transaction and order
+            await db.payment_transactions.update_one(
+                {'session_id': order_id},
+                {'$set': {
+                    'payment_status': 'paid',
+                    'updated_at': datetime.now(timezone.utc).isoformat()
+                }}
+            )
+            
+            transaction = await db.payment_transactions.find_one({'session_id': order_id}, {'_id': 0})
+            if transaction:
+                await db.orders.update_one(
+                    {'id': transaction['order_id']},
+                    {'$set': {'payment_status': 'paid', 'status': 'confirmed'}}
+                )
+            
+            return {'status': 'success', 'message': 'Payment captured'}
+        else:
+            raise HTTPException(status_code=400, detail="Payment not completed")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"PayPal capture error: {str(e)}")
 
 # ============ STATS ROUTES ============
 @api_router.get("/stats/categories")
