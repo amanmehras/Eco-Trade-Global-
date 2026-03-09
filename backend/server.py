@@ -529,7 +529,7 @@ async def create_checkout(checkout_req: CheckoutRequest, current_user: dict = De
     return {'url': session.url, 'session_id': session.session_id}
 
 @api_router.get("/payments/status/{session_id}")
-async def get_payment_status(session_id: str, current_user: dict = Depends(get_current_user)):
+async def get_payment_status(session_id: str, request: Request, current_user: dict = Depends(get_current_user)):
     transaction = await db.payment_transactions.find_one({'session_id': session_id}, {'_id': 0})
     if not transaction:
         raise HTTPException(status_code=404, detail="Transaction not found")
@@ -542,7 +542,7 @@ async def get_payment_status(session_id: str, current_user: dict = Depends(get_c
             'currency': transaction['currency']
         }
     
-    webhook_url = f"{os.environ.get('REACT_APP_BACKEND_URL', 'http://localhost:8001')}/api/webhook/stripe"
+    webhook_url = f"{str(request.base_url).rstrip('/')}/api/webhook/stripe"
     stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
     
     try:
@@ -573,7 +573,7 @@ async def get_payment_status(session_id: str, current_user: dict = Depends(get_c
 @api_router.post("/webhook/stripe")
 async def stripe_webhook(request: Request, stripe_signature: str = Header(None)):
     body = await request.body()
-    webhook_url = f"{os.environ.get('REACT_APP_BACKEND_URL', 'http://localhost:8001')}/api/webhook/stripe"
+    webhook_url = f"{str(request.base_url).rstrip('/')}/api/webhook/stripe"
     stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
     
     try:
