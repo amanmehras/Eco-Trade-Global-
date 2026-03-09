@@ -287,29 +287,29 @@ export default function ShipperDashboard({ user }) {
         {/* Stats Cards */}
         {stats && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12" data-testid="stats-section">
-            <Card className="industrial-card p-6">
+            <Card className="industrial-card p-6 bg-gradient-to-br from-gray-50 to-gray-100 border-gray-200">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-[#595959] text-sm mb-1">Total Products</p>
-                  <p className="text-3xl font-bold mono" data-testid="total-products">{stats.total_products}</p>
+                  <p className="text-3xl font-bold mono text-[#1A1A1A]" data-testid="total-products">{stats.total_products}</p>
                 </div>
                 <Package className="w-12 h-12 text-[#2A5934]" />
               </div>
             </Card>
-            <Card className="industrial-card p-6">
+            <Card className="industrial-card p-6 bg-gradient-to-br from-gray-50 to-gray-100 border-gray-200">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-[#595959] text-sm mb-1">Total Orders</p>
-                  <p className="text-3xl font-bold mono" data-testid="total-orders">{stats.total_orders}</p>
+                  <p className="text-3xl font-bold mono text-[#1A1A1A]" data-testid="total-orders">{stats.total_orders}</p>
                 </div>
                 <FileText className="w-12 h-12 text-[#2A5934]" />
               </div>
             </Card>
-            <Card className="industrial-card p-6">
+            <Card className="industrial-card p-6 bg-gradient-to-br from-gray-50 to-gray-100 border-gray-200">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-[#595959] text-sm mb-1">Unread Messages</p>
-                  <p className="text-3xl font-bold mono" data-testid="unread-messages">{stats.unread_messages}</p>
+                  <p className="text-3xl font-bold mono text-[#1A1A1A]" data-testid="unread-messages">{stats.unread_messages}</p>
                 </div>
                 <MessageSquare className="w-12 h-12 text-[#2A5934]" />
               </div>
@@ -323,7 +323,7 @@ export default function ShipperDashboard({ user }) {
           {products.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="products-grid">
               {products.map((product) => (
-                <Card key={product.id} className="industrial-card p-6">
+                <Card key={product.id} className="industrial-card p-6 bg-white hover:bg-gray-50 transition-colors">
                   <div className="flex items-start justify-between mb-4">
                     <div>
                       <span className="text-xs uppercase text-[#595959] mb-1 block">{product.category}</span>

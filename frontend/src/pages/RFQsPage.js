@@ -222,7 +222,7 @@ export default function RFQsPage({ user }) {
         ) : rfqs.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="rfqs-grid">
             {rfqs.map((rfq) => (
-              <Card key={rfq.id} className="industrial-card p-6" data-testid={`rfq-card-${rfq.id}`}>
+              <Card key={rfq.id} className="industrial-card p-6 bg-white hover:bg-gray-50 transition-colors" data-testid={`rfq-card-${rfq.id}`}>
                 <div className="flex items-start justify-between mb-4">
                   <span className="text-xs uppercase text-[#595959]">{rfq.category}</span>
                   <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs uppercase">{rfq.status}</span>

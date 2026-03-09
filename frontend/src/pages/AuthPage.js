@@ -71,7 +71,7 @@ export default function AuthPage({ setUser }) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-12 px-4" data-testid="auth-page">
+    <div className="min-h-screen flex items-center justify-center py-12 px-4 bg-gradient-to-br from-gray-50 to-gray-100" data-testid="auth-page">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-4">
@@ -81,11 +81,11 @@ export default function AuthPage({ setUser }) {
           <p className="text-[#595959]">Join the global B2B scrap marketplace</p>
         </div>
 
-        <Card className="p-6 border border-[#D1D1D1] rounded-sm">
+        <Card className="p-6 border border-[#D1D1D1] rounded-sm bg-white shadow-sm">
           <Tabs defaultValue="login" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-6">
-              <TabsTrigger value="login" data-testid="login-tab">Login</TabsTrigger>
-              <TabsTrigger value="register" data-testid="register-tab">Register</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 mb-6 bg-gray-100">
+              <TabsTrigger value="login" data-testid="login-tab" className="data-[state=active]:bg-white">Login</TabsTrigger>
+              <TabsTrigger value="register" data-testid="register-tab" className="data-[state=active]:bg-white">Register</TabsTrigger>
             </TabsList>
 
             <TabsContent value="login">
