@@ -1,0 +1,137 @@
+{
+  "identity": {
+    "name": "EcoTrade Global",
+    "theme_mode": "light",
+    "archetype": "Organic & Earthy + Swiss High-Contrast",
+    "vibe": "Industrial, Trustworthy, Global, Tactile",
+    "description": "A high-end B2B marketplace for the paper scrap industry. Design should feel like a modern logistics manifest—clean, data-dense, yet organic."
+  },
+  "typography": {
+    "headings": {
+      "family": "Barlow Condensed, sans-serif",
+      "weights": ["600", "700", "800"],
+      "usage": "Use for all page titles, section headers, and big stats. Tight tracking.",
+      "cdn_link": "https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600&display=swap"
+    },
+    "body": {
+      "family": "Inter, sans-serif",
+      "weights": ["400", "500", "600"],
+      "usage": "Use for all paragraphs, data tables, inputs, and UI elements. optimize for legibility."
+    },
+    "mono": {
+      "family": "JetBrains Mono, monospace",
+      "usage": "Use for Order IDs, SKU numbers, Price tickers, and Technical specs."
+    }
+  },
+  "colors": {
+    "primary": {
+      "name": "Industrial Forest",
+      "hex": "#2A5934",
+      "usage": "Primary brand color. Use for active states, primary buttons, and logo."
+    },
+    "secondary": {
+      "name": "Container Blue",
+      "hex": "#1B365D",
+      "usage": "Secondary brand color. Use for headers, footers, and shipper profiles."
+    },
+    "accent": {
+      "name": "Safety Orange",
+      "hex": "#FF6B35",
+      "usage": "High-visibility CTAs, alerts, notifications, and 'New' badges."
+    },
+    "background": {
+      "main": "#F4F4F0",
+      "surface": "#FFFFFF",
+      "subtle": "#E8E8E4"
+    },
+    "text": {
+      "primary": "#1A1A1A",
+      "secondary": "#595959",
+      "muted": "#8C8C8C"
+    },
+    "border": {
+      "default": "#D1D1D1",
+      "active": "#1A1A1A"
+    }
+  },
+  "layout": {
+    "container": {
+      "maxWidth": "max-w-7xl",
+      "padding": "px-4 md:px-8 lg:px-12",
+      "center": "mx-auto"
+    },
+    "grids": {
+      "marketing": "grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-8",
+      "dashboard": "grid grid-cols-1 md:grid-cols-4 gap-4",
+      "products": "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+    },
+    "spacing": {
+      "section_padding": "py-16 md:py-24",
+      "element_gap": "space-y-6"
+    }
+  },
+  "components": {
+    "buttons": {
+      "primary": "bg-[#2A5934] text-white hover:bg-[#1f4226] rounded-sm px-8 py-3 uppercase tracking-wide font-bold transition-all shadow-sm active:translate-y-[1px]",
+      "secondary": "bg-transparent border-2 border-[#1B365D] text-[#1B365D] hover:bg-[#1B365D] hover:text-white rounded-sm px-8 py-3 uppercase tracking-wide font-bold transition-all",
+      "ghost": "text-[#595959] hover:text-[#1A1A1A] hover:bg-[#F4F4F0] px-4 py-2 rounded-sm transition-colors"
+    },
+    "cards": {
+      "style": "bg-white border border-[#D1D1D1] rounded-sm shadow-none hover:border-[#2A5934] transition-colors p-6",
+      "product_card": "group relative bg-white border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300"
+    },
+    "inputs": {
+      "style": "bg-white border border-[#D1D1D1] rounded-sm px-4 py-3 focus:ring-2 focus:ring-[#2A5934] focus:border-transparent outline-none transition-all placeholder:text-gray-400"
+    },
+    "badges": {
+      "style": "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium uppercase tracking-wide",
+      "success": "bg-green-100 text-green-800",
+      "warning": "bg-yellow-100 text-yellow-800",
+      "error": "bg-red-100 text-red-800"
+    }
+  },
+  "visual_enhancers": {
+    "texture": "Add a subtle noise texture to the background (#F4F4F0) to give it a 'recycled paper' feel.",
+    "shadows": "Use minimal, sharp shadows. No diffuse glows. Think 'printed material'.",
+    "borders": "Use 1px solid borders. Avoid rounded corners > 4px. Aim for a 'machined' look."
+  },
+  "image_urls": {
+    "hero_background": "https://images.unsplash.com/photo-1765206257996-9b4a5d886a2c?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2MjJ8MHwxfHNlYXJjaHw0fHxzaGlwcGluZyUyMGNvbnRhaW5lciUyMHBvcnQlMjBjYXJnbyUyMHNoaXAlMjBsb2dpc3RpY3N8ZW58MHx8fHwxNzczMDM0MDgwfDA&ixlib=rb-4.1.0&q=85",
+    "paper_bales": "https://images.unsplash.com/photo-1711885417467-6eac5cb81607?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDN8MHwxfHNlYXJjaHwzfHxwYXBlciUyMHJlY3ljbGluZyUyMGJhbGVzJTIwZmFjdG9yeSUyMHdhcmVob3VzZXxlbnwwfHx8fDE3NzMwMzQwNzl8MA&ixlib=rb-4.1.0&q=85",
+    "warehouse_interior": "https://images.unsplash.com/photo-1679207751072-aa076562a4f6?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDN8MHwxfHNlYXJjaHwyfHxwYXBlciUyMHJlY3ljbGluZyUyMGJhbGVzJTIwZmFjdG9yeSUyMHdhcmVob3VzZXxlbnwwfHx8fDE3NzMwMzQwNzl8MA&ixlib=rb-4.1.0&q=85",
+    "logistics_worker": "https://images.unsplash.com/photo-1768796372882-8b67936af681?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDN8MHwxfHNlYXJjaHwxfHxsb2dpc3RpY3MlMjBtYW5hZ2VyJTIwaW4lMjB3YXJlaG91c2UlMjB3aXRoJTIwdGFibGV0fGVufDB8fHx8MTc3MzAzNDA4N3ww&ixlib=rb-4.1.0&q=85",
+    "ship_loading": "https://images.unsplash.com/photo-1759272548457-12b8580bfca7?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2MjJ8MHwxfHNlYXJjaHwyfHxzaGlwcGluZyUyMGNvbnRhaW5lciUyMHBvcnQlMjBjYXJnbyUyMHNoaXAlMjBsb2dpc3RpY3N8ZW58MHx8fHwxNzczMDM0MDgwfDA&ixlib=rb-4.1.0&q=85",
+    "office_worker": "https://images.unsplash.com/photo-1622127739239-1905bbaa21b8?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDN8MHwxfHNlYXJjaHwyfHxsb2dpc3RpY3MlMjBtYW5hZ2VyJTIwaW4lMjB3YXJlaG91c2UlMjB3aXRoJTIwdGFibGV0fGVufDB8fHx8MTc3MzAzNDA4N3ww&ixlib=rb-4.1.0&q=85"
+  },
+  "instructions_to_main_agent": [
+    "INSTALL FONTS: Add the Google Fonts link to index.html immediately.",
+    "RESET CSS: Ensure 'Barlow Condensed' is used for all headings (h1-h6) and 'Inter' for body.",
+    "TEXTURE: Add a subtle noise background image or CSS pattern to the body to kill the 'flat digital' look.",
+    "COMPONENTS: Customize Shadcn components. Remove rounded-lg, change to rounded-sm. Remove soft shadows, use 1px borders.",
+    "HERO SECTION: Use the 'hero_background' image with a dark overlay (#1B365D at 80% opacity) and white text.",
+    "CARDS: Do not use default Shadcn cards. Create a custom 'IndustrialCard' with a thick top border in the primary color.",
+    "TABLES: Use high-density tables for the dashboard. Reduce padding. Use zebra striping (odd: bg-white, even: bg-[#F9F9F9]).",
+    "CTA: Primary buttons must be big, bold, and rectangular. No soft gradients.",
+    "FORMS: Inputs should feel like physical paper forms - sharp edges, clear labels."
+  ],
+  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
+    "Dark colors look good when used independently without gradients. DO NOT use dark colors as gradients",
+    "Don't make generic centered layouts, simplistic gradients, and uniform styling.",
+    "Create depth through layered design elements with z-index hierarchy",
+    "Use glass-morphism effects with backdrop filters (12-24px blur)",
+    "You MUST NOT apply universal transition. Eg: transition: all. This results in breaking transforms. Always add transitions for specific interactive elements like button, input excluding transforms",
+    "You MUST NOT center align the app container, ie do not add .App { text-align: center; } in the css file. This disrupts the human natural reading flow of text",
+    "Always use modern button styles like pill-shaped, or sharp button with interaction animations & color relevant to the app style",
+    "NEVER: use AI assistant Emoji characters like 🤖🧠💭💡🔮 etc for icons.",
+    "Every interaction needs micro-animations - hover states, transitions, parallax effects, and entrance animations. Static = dead.",
+    "Use 2-3x more spacing than feels comfortable. Cramped designs look cheap.",
+    "Subtle grain textures, noise overlays, custom cursors, selection states, and loading animations: separates good from extraordinary.",
+    "Main agent relies on these image URLs. Missing categories (especially sponsor logos) = main agent will use placeholder text which is FORBIDDEN",
+    "Prioritize using pre-existing components from src/components/ui when applicable",
+    "Create new components that match the style and conventions of existing components when needed",
+    "Components MUST use named exports (export const ComponentName = ...)",
+    "Pages MUST use default exports (export default function PageName() {...})",
+    "Use sonner for toasts",
+    "All interactive and key informational elements MUST include a data-testid attribute to facilitate robust automated testing."
+  ]
+}
